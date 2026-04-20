@@ -1,253 +1,255 @@
 # Sistema de Pedidos con Clean Architecture
 
-## Informacion del proyecto
+## Información del proyecto
 
-**Asignatura:** Patrones de Diseno de Software  
-**Unidad:** Unidad 8 - Patrones Arquitectonicos II  
+**Asignatura:** Patrones de Diseño de Software  
+**Unidad:** Unidad 8 - Arquitectura Limpia  
 **Actividad:** Post-Contenido 1  
+**Estudiante:** Carlos Vega  
 **Repositorio:** Vega-post1-u8  
 
-## Descripcion
+## Descripción
 
-Este proyecto implementa un sistema de pedidos aplicando **Clean Architecture**. La solucion organiza el codigo en circulos concentricos: entidades de dominio, casos de uso, adaptadores de interfaz y frameworks/drivers.
+Este proyecto implementa un sistema de gestión de pedidos utilizando **Clean Architecture**, organizando el sistema en capas concéntricas que separan claramente la lógica de negocio de los detalles técnicos.
 
-La aplicacion expone una API REST para crear pedidos, consultar un pedido por ID y listar todos los pedidos. Los datos se persisten usando Spring Data JPA sobre una base H2 en memoria.
+El objetivo principal es garantizar independencia del dominio respecto a frameworks como Spring Boot, permitiendo que la lógica central sea fácilmente testeable, mantenible y extensible.
 
-## Tecnologias utilizadas
+La aplicación expone una API REST para crear pedidos y consultarlos por identificador.
 
-- Java 17
-- Spring Boot 3.3.5
-- Spring Web
-- Spring Data JPA
-- H2 Database
-- Bean Validation
-- Maven
-- JUnit 5
+## Tecnologías utilizadas
+
+- Java 17  
+- Spring Boot 3.3.5  
+- Spring Web  
+- Spring Data JPA  
+- H2 Database  
+- Maven  
+- JUnit 5  
+
+## Arquitectura (Clean Architecture)
+
+El sistema se organiza en círculos:
+
+```text
+domain      -> Entidades y Value Objects
+usecase     -> Casos de uso
+adapter     -> Controladores y persistencia
+config      -> Configuración de dependencias
+````
+
+Esta estructura sigue el principio de inversión de dependencias, donde las capas externas dependen de las internas, pero nunca al contrario.
+
+## Estructura del proyecto
+
+```text
+com.example.pedidos
+├── domain
+│   ├── model
+│   │   ├── Pedido.java
+│   │   ├── PedidoId.java
+│   │   ├── Dinero.java
+│   │   ├── LineaPedido.java
+│   │   └── EstadoPedido.java
+├── usecase
+│   ├── CrearPedidoUseCase.java
+│   └── ConsultarPedidoUseCase.java
+├── adapter
+│   ├── in
+│   │   └── web
+│   │       ├── PedidoController.java
+│   │       └── dto
+│   └── out
+│       └── persistence
+│           ├── PedidoJpaEntity.java
+│           ├── PedidoJpaRepository.java
+│           └── PedidoRepositoryAdapter.java
+├── config
+│   └── BeanConfiguration.java
+└── PedidosApplication.java
+```
+
+## Dominio
+
+El dominio es completamente independiente de frameworks.
+
+### Entidad principal
+
+* Pedido
+
+### Value Objects
+
+* PedidoId
+* Dinero
+* LineaPedido
+* EstadoPedido
+
+Estos encapsulan reglas del negocio y garantizan consistencia interna del sistema.
+
+## Casos de uso
+
+* CrearPedidoUseCase
+* ConsultarPedidoUseCase
+
+Los casos de uso contienen la lógica de aplicación y orquestan el flujo entre dominio y puertos.
+
+## Puerto de salida
+
+```java
+Pedido guardar(Pedido pedido);
+Optional<Pedido> buscarPorId(PedidoId id);
+```
+
+Este puerto define el contrato que debe cumplir la infraestructura sin acoplar el dominio a JPA.
+
+## Adaptadores
+
+### Adaptador REST
+
+Expone los endpoints:
+
+```text
+POST /api/pedidos
+GET  /api/pedidos/{id}
+```
+
+### Adaptador de persistencia
+
+Encapsula el acceso a datos con JPA:
+
+* PedidoJpaEntity
+* PedidoJpaRepository
+* PedidoRepositoryAdapter
 
 ## Base de datos
 
-El proyecto usa H2 en memoria.
+Se utiliza H2 en memoria.
+
+Consola:
 
 ```text
 http://localhost:8080/h2-console
 ```
 
-Datos de conexion:
+Datos de conexión:
 
-```text
-JDBC URL: jdbc:h2:mem:pedidosdb
-User Name: sa
-Password:
+* JDBC URL: `jdbc:h2:mem:pedidosdb`
+* User Name: `sa`
+* Password: *(vacío)*
+
+## Manejo de errores
+
+Se implementa manejo global de excepciones para validar reglas del dominio.
+
+Ejemplos:
+
+```json
+{
+  "error": "El cliente es obligatorio"
+}
 ```
 
-La contrasena se deja vacia.
-
-## Clean Architecture
-
-La dependencia del codigo apunta hacia adentro. El dominio no depende de Spring, JPA ni HTTP. Los casos de uso dependen del dominio y de puertos. Los adaptadores conectan la aplicacion con REST y persistencia.
-
-```text
-Frameworks & Drivers  -> Spring Boot, JPA, H2
-Interface Adapters    -> Controller, DTOs, Repository Adapter
-Use Cases             -> CrearPedidoService, ConsultarPedidoService, puertos
-Entities              -> Pedido, PedidoId, Dinero, LineaPedido, EstadoPedido
+```json
+{
+  "error": "La cantidad debe ser mayor a cero"
+}
 ```
 
-## Estructura del proyecto
-
-```text
-com.example.cleanpedidos
-├── domain
-│   ├── entity
-│   │   └── Pedido.java
-│   └── valueobject
-│       ├── PedidoId.java
-│       ├── LineaPedido.java
-│       ├── Dinero.java
-│       └── EstadoPedido.java
-├── usecase
-│   ├── CrearPedidoUseCase.java
-│   ├── ConsultarPedidoUseCase.java
-│   ├── dto
-│   │   └── LineaPedidoDto.java
-│   ├── port
-│   │   └── PedidoRepositoryPort.java
-│   └── impl
-│       ├── CrearPedidoService.java
-│       ├── ConsultarPedidoService.java
-│       └── PedidoNotFoundException.java
-├── adapter
-│   ├── in/web
-│   │   ├── PedidoController.java
-│   │   ├── GlobalExceptionHandler.java
-│   │   └── dto
-│   │       ├── CrearPedidoRequest.java
-│   │       ├── LineaPedidoResponse.java
-│   │       └── PedidoResponse.java
-│   └── out/persistence
-│       ├── PedidoJpaEntity.java
-│       ├── LineaPedidoJpaEmbeddable.java
-│       ├── PedidoJpaRepository.java
-│       └── PedidoRepositoryAdapter.java
-├── config
-│   └── PedidoConfiguration.java
-└── CleanPedidosApplication.java
-```
-
-## Diagrama de flujo
-
-```text
-HTTP Request
-    |
-    v
-PedidoController
-    |
-    v
-CrearPedidoUseCase / ConsultarPedidoUseCase
-    |
-    v
-CrearPedidoService / ConsultarPedidoService
-    |
-    v
-PedidoRepositoryPort
-    |
-    v
-PedidoRepositoryAdapter
-    |
-    v
-PedidoJpaRepository + H2
-```
-
-## Dominio
-
-`Pedido` es el Aggregate Root. Controla la modificacion de sus lineas y el cambio de estado.
-
-Reglas principales:
-
-- Un pedido debe tener cliente.
-- Solo se pueden agregar lineas en estado `BORRADOR`.
-- No se puede confirmar un pedido sin lineas.
-- El total se calcula desde las lineas del pedido.
-
-Value Objects:
-
-- `PedidoId`: identidad tipada basada en UUID.
-- `Dinero`: representa montos monetarios y no permite valores negativos.
-- `LineaPedido`: representa una linea inmutable del pedido.
-- `EstadoPedido`: enum de estados del pedido.
-
-## Casos de uso
-
-`CrearPedidoService` crea un pedido, agrega sus lineas, lo confirma y lo persiste usando `PedidoRepositoryPort`.
-
-`ConsultarPedidoService` permite buscar un pedido por ID y listar todos los pedidos.
-
-## Adaptadores
-
-`PedidoController` traduce HTTP a llamadas a los casos de uso.
-
-`PedidoRepositoryAdapter` traduce entre el modelo de dominio y las entidades JPA. Las entidades JPA viven solo en `adapter/out/persistence`.
-
-## Endpoints
-
-```text
-POST /api/pedidos
-GET  /api/pedidos/{id}
-GET  /api/pedidos
-```
-
-## Como ejecutar
-
-Compilar:
-
-```bash
-mvn clean compile
-```
-
-Compilar y probar:
-
-```bash
-mvn package
-```
-
-Ejecutar:
+## Ejecución del proyecto
 
 ```bash
 mvn spring-boot:run
 ```
 
-La API queda disponible en:
+La aplicación queda disponible en:
 
 ```text
 http://localhost:8080
 ```
 
-## Pruebas con PowerShell
+## Pruebas de endpoints
 
-Crear pedido:
+### Crear pedido
 
-```powershell
-curl -Method POST http://localhost:8080/api/pedidos -ContentType "application/json" -Body '{"clienteNombre":"Ana Garcia","lineas":[{"productoNombre":"Laptop","cantidad":1,"precioUnitario":1500.00}]}'
+```json
+POST /api/pedidos
+{
+  "clienteNombre": "Ana Garcia",
+  "lineas": [...]
+}
 ```
 
-Consultar pedido:
+Respuesta:
 
-```powershell
-curl http://localhost:8080/api/pedidos/{pedidoId}
+```json
+{
+  "pedidoId": "a82f2f67-e67e-422c-b066-5f7007775cc5"
+}
 ```
 
-Listar pedidos:
+### Consultar pedido
 
-```powershell
-curl http://localhost:8080/api/pedidos
+```json
+GET /api/pedidos/{id}
 ```
 
-Probar cliente vacio:
+Respuesta:
 
-```powershell
-curl -Method POST http://localhost:8080/api/pedidos -ContentType "application/json" -Body '{"clienteNombre":"","lineas":[{"productoNombre":"Laptop","cantidad":1,"precioUnitario":1500.00}]}'
+```json
+{
+  "id": "...",
+  "clienteNombre": "Ana Garcia",
+  "estado": "CONFIRMADO",
+  "lineas": [...],
+  "total": 1500.00
+}
 ```
 
-Probar cantidad invalida:
+## Validaciones
 
-```powershell
-curl -Method POST http://localhost:8080/api/pedidos -ContentType "application/json" -Body '{"clienteNombre":"Ana Garcia","lineas":[{"productoNombre":"Laptop","cantidad":0,"precioUnitario":1500.00}]}'
-```
+* Cliente obligatorio → 400
+* Cantidad inválida → 400
 
-## Capturas sugeridas
+## Pruebas unitarias
 
-Agregar capturas de:
+El proyecto incluye pruebas con JUnit que validan:
+
+* Lógica del dominio
+* Casos de uso
+
+Resultados:
 
 ```text
-capturas/post-pedido.png
-capturas/get-pedido-id.png
-capturas/get-pedidos.png
-capturas/error-cliente-vacio.png
-capturas/error-cantidad-invalida.png
-capturas/h2-console.png
+Tests run: 3, Failures: 0, Errors: 0
 ```
 
-## Checkpoints
+Esto demuestra que el dominio es independiente de Spring.
 
-- El proyecto compila con `mvn clean compile`.
-- `domain/` no importa Spring ni JPA.
-- `usecase/` no importa Spring.
-- `POST /api/pedidos` retorna `201 Created` con un UUID.
-- `GET /api/pedidos/{id}` retorna el pedido con lineas y total calculado.
-- Cliente vacio retorna `400`.
-- Cantidad menor o igual a cero retorna `400`.
-- `Pedido` se prueba en JUnit sin `@SpringBootTest`.
-- `CrearPedidoService` se prueba usando un repositorio en memoria sin Spring.
+## Verificación
+
+* Compilación exitosa con Maven
+* Empaquetado correcto
+* API funcional
+* Validaciones operativas
+* Arquitectura desacoplada
+* Dominio testeable sin framework
 
 ## Commits sugeridos
 
-```text
-feat: crear proyecto Spring Boot con estructura Clean Architecture
-feat: implementar dominio y casos de uso de pedidos
-feat: agregar adaptadores REST y JPA para pedidos
-feat: agregar pruebas y documentacion de Clean Architecture
+```bash
+git add .
+git commit -m "feat: crear proyecto Spring Boot con Clean Architecture"
+
+git add .
+git commit -m "feat: implementar dominio y casos de uso de pedidos"
+
+git add .
+git commit -m "feat: agregar adaptadores REST y JPA"
+
+git add .
+git commit -m "docs: agregar README con arquitectura y pruebas"
 ```
 
-## Conclusion
+## Conclusión
 
-La implementacion aplica Clean Architecture separando el dominio, los casos de uso, los adaptadores y los frameworks. Esta organizacion protege la logica de negocio de detalles tecnicos, facilita las pruebas unitarias y permite cambiar la infraestructura sin afectar el nucleo del sistema.
+La implementación de Clean Architecture permite separar completamente la lógica de negocio de la infraestructura, garantizando un sistema desacoplado, mantenible y fácilmente testeable. Esta aproximación mejora la calidad del software y facilita su evolución a largo plazo.
+
